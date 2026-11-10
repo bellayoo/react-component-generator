@@ -1,6 +1,8 @@
 import { stripCodeFences, ensureRenderCall } from './generator';
 import { withModelFallback } from './fallback';
 import { streamText, parseAnthropicEvent, parseGoogleEvent } from './stream';
+import { ndjsonStream } from './ndjson-stream';
+import { CORS_HEADERS, errorResponse } from './http';
 
 // 우선순위 순서. 앞 모델이 실패하면 다음 모델로 폴백한다.
 const GOOGLE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
@@ -48,12 +50,6 @@ const GradientButton = () => {
 };
 
 render(<GradientButton />);`;
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 type Provider = 'anthropic' | 'google';
 
@@ -136,9 +132,14 @@ async function callGoogle(prompt: string, apiKey: string): Promise<string> {
   return withModelFallback(GOOGLE_MODELS, (model) => callGoogleModel(prompt, apiKey, model));
 }
 
-async function openAnthropicStream(prompt: string, apiKey: string): Promise<ReadableStream<Uint8Array>> {
+async function openAnthropicStream(
+  prompt: string,
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
@@ -160,11 +161,17 @@ async function openAnthropicStream(prompt: string, apiKey: string): Promise<Read
   return response.body;
 }
 
-async function openGoogleStream(prompt: string, apiKey: string, model: string): Promise<ReadableStream<Uint8Array>> {
+async function openGoogleStream(
+  prompt: string,
+  apiKey: string,
+  model: string,
+  signal: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -181,75 +188,8 @@ async function openGoogleStream(prompt: string, apiKey: string, model: string): 
 }
 
 // 연결 단계에서만 폴백한다. 스트림이 시작된 뒤의 실패는 다른 모델로 이어갈 수 없다.
-function openGoogleStreamWithFallback(prompt: string, apiKey: string) {
-  return withModelFallback(GOOGLE_MODELS, (model) => openGoogleStream(prompt, apiKey, model));
-}
-
-function errorResponse(err: unknown): Response {
-  const message = err instanceof Error ? err.message : 'Unknown error';
-
-  if (message.includes('503')) {
-    return Response.json(
-      { error: 'API 서버가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.' },
-      { status: 503, headers: CORS_HEADERS }
-    );
-  }
-
-  if (message.includes('429')) {
-    return Response.json(
-      { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-      { status: 429, headers: CORS_HEADERS }
-    );
-  }
-
-  return Response.json({ error: message }, { status: 500, headers: CORS_HEADERS });
-}
-
-// 텍스트 델타를 NDJSON(delta → done | error)으로 내보낸다. 최종 코드는 서버에서 정규화한다.
-function ndjsonStream(deltas: AsyncGenerator<string>): Response {
-  const encoder = new TextEncoder();
-  let cancelled = false;
-
-  // 클라이언트가 끊긴 뒤의 enqueue/close는 throw하므로 무시한다.
-  const send = (controller: ReadableStreamDefaultController<Uint8Array>, message: object) => {
-    if (cancelled) return;
-    try {
-      controller.enqueue(encoder.encode(`${JSON.stringify(message)}\n`));
-    } catch {
-      cancelled = true;
-    }
-  };
-
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      let full = '';
-      try {
-        for await (const text of deltas) {
-          if (cancelled) break;
-          full += text;
-          send(controller, { type: 'delta', text });
-        }
-        send(controller, { type: 'done', code: ensureRenderCall(stripCodeFences(full)) });
-      } catch (err) {
-        send(controller, { type: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
-      } finally {
-        try {
-          controller.close();
-        } catch {
-          // 이미 닫힌 스트림
-        }
-      }
-    },
-    // 클라이언트 연결이 끊기면 루프를 멈춰 업스트림 읽기를 취소(streamText의 finally)한다.
-    cancel() {
-      cancelled = true;
-      void deltas.return(undefined);
-    },
-  });
-
-  return new Response(body, {
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
-  });
+function openGoogleStreamWithFallback(prompt: string, apiKey: string, signal: AbortSignal) {
+  return withModelFallback(GOOGLE_MODELS, (model) => openGoogleStream(prompt, apiKey, model, signal));
 }
 
 const server = Bun.serve({
@@ -297,12 +237,17 @@ const server = Bun.serve({
           );
         }
 
+        // 클라이언트가 끊기면(req.signal) 또는 응답이 취소되면(onCancel) 업스트림 요청과 읽기를 중단한다.
+        const abort = new AbortController();
+        req.signal.addEventListener('abort', () => abort.abort(), { once: true });
+        const { signal } = abort;
+
         const upstream =
           provider === 'google'
-            ? streamText(await openGoogleStreamWithFallback(prompt, resolvedKey), parseGoogleEvent)
-            : streamText(await openAnthropicStream(prompt, resolvedKey), parseAnthropicEvent);
+            ? streamText(await openGoogleStreamWithFallback(prompt, resolvedKey, signal), parseGoogleEvent, signal)
+            : streamText(await openAnthropicStream(prompt, resolvedKey, signal), parseAnthropicEvent, signal);
 
-        return ndjsonStream(upstream);
+        return ndjsonStream(upstream, { headers: CORS_HEADERS, onCancel: () => abort.abort() });
       } catch (err) {
         return errorResponse(err);
       }

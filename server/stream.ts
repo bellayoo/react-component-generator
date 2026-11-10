@@ -36,8 +36,11 @@ export function createSseParser(): (chunk: string) => string[] {
 export async function* streamText(
   body: ReadableStream<Uint8Array>,
   parseEvent: (payload: string) => StreamEvent,
+  signal?: AbortSignal,
 ): AsyncGenerator<string> {
   const reader = body.getReader();
+  // 업스트림이 조용해 read()가 대기 중이어도 abort 즉시 읽기를 끝낸다.
+  signal?.addEventListener('abort', () => void reader.cancel().catch(() => {}), { once: true });
   const decoder = new TextDecoder();
   const parseSse = createSseParser();
   let finished = false;

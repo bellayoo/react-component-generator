@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createSseParser, parseAnthropicEvent, parseGoogleEvent, streamText } from './stream';
 
 function sseBody(chunks: string[]): ReadableStream<Uint8Array> {
@@ -24,6 +24,41 @@ describe('streamText', () => {
       'data: {"candidates":[{"content":{"parts":[{"text":"b"}]},"finishReason":"STOP"}]}\n\n',
     ]);
     expect(await collect(streamText(body, parseGoogleEvent))).toEqual(['a', 'b']);
+  });
+
+  it('소비자가 조기 종료하면 업스트림 읽기를 취소한다', async () => {
+    const cancel = vi.fn();
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode('data: {"candidates":[{"content":{"parts":[{"text":"a"}]}}]}\n\n'),
+        );
+      },
+      cancel,
+    });
+
+    const iter = streamText(body, parseGoogleEvent);
+    await iter.next();
+    await iter.return(undefined);
+    await Promise.resolve();
+
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('업스트림이 조용해도 signal이 abort되면 즉시 업스트림 읽기를 취소한다', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    const controller = new AbortController();
+
+    const iter = streamText(body, parseGoogleEvent, controller.signal);
+    const pending = iter.next().catch(() => {});
+    await Promise.resolve();
+
+    controller.abort();
+    await pending;
+
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 
   it('종료 신호 없이 스트림이 끝나면 중단 에러를 던진다', async () => {
