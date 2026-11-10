@@ -1,5 +1,8 @@
 import { stripCodeFences, ensureRenderCall } from './generator';
 import { withModelFallback } from './fallback';
+import { streamText, parseAnthropicEvent, parseGoogleEvent } from './stream';
+import { ndjsonStream } from './ndjson-stream';
+import { CORS_HEADERS, errorResponse } from './http';
 
 // 우선순위 순서. 앞 모델이 실패하면 다음 모델로 폴백한다.
 const GOOGLE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
@@ -47,12 +50,6 @@ const GradientButton = () => {
 };
 
 render(<GradientButton />);`;
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 type Provider = 'anthropic' | 'google';
 
@@ -135,6 +132,66 @@ async function callGoogle(prompt: string, apiKey: string): Promise<string> {
   return withModelFallback(GOOGLE_MODELS, (model) => callGoogleModel(prompt, apiKey, model));
 }
 
+async function openAnthropicStream(
+  prompt: string,
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      stream: true,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Claude API error: ${response.status}`);
+  }
+
+  return response.body;
+}
+
+async function openGoogleStream(
+  prompt: string,
+  apiKey: string,
+  model: string,
+  signal: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 8192 },
+    }),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  return response.body;
+}
+
+// 연결 단계에서만 폴백한다. 스트림이 시작된 뒤의 실패는 다른 모델로 이어갈 수 없다.
+function openGoogleStreamWithFallback(prompt: string, apiKey: string, signal: AbortSignal) {
+  return withModelFallback(GOOGLE_MODELS, (model) => openGoogleStream(prompt, apiKey, model, signal));
+}
+
 const server = Bun.serve({
   port: 3002,
   async fetch(req) {
@@ -154,6 +211,46 @@ const server = Bun.serve({
         },
         { headers: CORS_HEADERS }
       );
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/generate/stream') {
+      try {
+        const { prompt, apiKey, provider = 'anthropic' } = (await req.json()) as {
+          prompt: string;
+          apiKey?: string;
+          provider?: Provider;
+        };
+
+        const resolvedKey = resolveApiKey(provider, apiKey);
+
+        if (!resolvedKey) {
+          return Response.json(
+            { error: `API key is required. Set ${provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GOOGLE_API_KEY'} in .env or enter it manually.` },
+            { status: 400, headers: CORS_HEADERS }
+          );
+        }
+
+        if (!prompt) {
+          return Response.json(
+            { error: 'Prompt is required' },
+            { status: 400, headers: CORS_HEADERS }
+          );
+        }
+
+        // 클라이언트가 끊기면(req.signal) 또는 응답이 취소되면(onCancel) 업스트림 요청과 읽기를 중단한다.
+        const abort = new AbortController();
+        req.signal.addEventListener('abort', () => abort.abort(), { once: true });
+        const { signal } = abort;
+
+        const upstream =
+          provider === 'google'
+            ? streamText(await openGoogleStreamWithFallback(prompt, resolvedKey, signal), parseGoogleEvent, signal)
+            : streamText(await openAnthropicStream(prompt, resolvedKey, signal), parseAnthropicEvent, signal);
+
+        return ndjsonStream(upstream, { headers: CORS_HEADERS, onCancel: () => abort.abort() });
+      } catch (err) {
+        return errorResponse(err);
+      }
     }
 
     if (req.method === 'POST' && url.pathname === '/api/generate') {
@@ -189,26 +286,7 @@ const server = Bun.serve({
 
         return Response.json({ code }, { headers: CORS_HEADERS });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-
-        if (message.includes('503')) {
-          return Response.json(
-            { error: 'API 서버가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.' },
-            { status: 503, headers: CORS_HEADERS }
-          );
-        }
-
-        if (message.includes('429')) {
-          return Response.json(
-            { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-            { status: 429, headers: CORS_HEADERS }
-          );
-        }
-
-        return Response.json(
-          { error: message },
-          { status: 500, headers: CORS_HEADERS }
-        );
+        return errorResponse(err);
       }
     }
 
