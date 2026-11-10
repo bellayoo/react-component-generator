@@ -19,6 +19,7 @@
 - API 키 값을 클라이언트 응답에 포함하지 마라. `/api/config`는 키 존재 여부(boolean)만 반환한다 (`server/index.ts:147-157`).
 - API 키를 로그, 에러 메시지에 출력하지 마라. Gemini 호출은 키가 URL 쿼리에 들어가므로(`server/index.ts:99`) URL이나 요청 객체를 에러에 포함하면 키가 노출된다. 현재 throw 메시지는 상태 코드만 담는다 (`server/index.ts:85, 112`).
 - `.env`는 커밋하지 마라 (`.gitignore`, `.worktreeinclude`에 등록됨).
+- 민감 파일(`.env*`, `*credential*`, `*secret*`, `*.pem`, `*.key`, `id_rsa*`, `.npmrc`, `.netrc`, `~/.ssh`, `~/.aws`)은 읽기·수정·출력 모두 금지다. `.claude/settings.json`의 `permissions.deny`가 Read/Edit와 일부 Bash 명령(`cat`, `grep` 등)을 차단한다. 우회하지 말고, 값이 필요하면 사용자에게 요청하라. 차단 목록을 바꿀 때는 이 문서와 함께 갱신하라.
 
 ### Do's & Don'ts
 
