@@ -266,6 +266,22 @@ textarea:focus-visible {
   line-height: 24px;
 }
 
+.prompt-meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.prompt-error,
+.prompt-counter--over {
+  color: var(--danger);
+}
+
+.prompt-textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
 .prompt-textarea::placeholder,
 .api-key-field input::placeholder {
   color: #8b867a;

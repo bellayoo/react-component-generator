@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MAX_PROMPT_LENGTH, validatePromptLength } from '../utils/validatePrompt';
 
 interface PromptInputProps {
   onGenerate: (prompt: string) => void;
@@ -16,10 +17,11 @@ const EXAMPLES = [
 
 export function PromptInput({ onGenerate, isLoading }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
+  const { valid, length } = validatePromptLength(prompt);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim() && !isLoading) {
+    if (prompt.trim() && valid && !isLoading) {
       onGenerate(prompt.trim());
     }
   };
@@ -46,11 +48,22 @@ export function PromptInput({ onGenerate, isLoading }: PromptInputProps) {
               handleSubmit(e);
             }
           }}
+          aria-invalid={!valid}
         />
+        <div className="prompt-meta">
+          {!valid && (
+            <span role="alert" className="prompt-error">
+              프롬프트는 {MAX_PROMPT_LENGTH}자까지 입력할 수 있습니다.
+            </span>
+          )}
+          <span className={valid ? 'prompt-counter' : 'prompt-counter prompt-counter--over'}>
+            {length}/{MAX_PROMPT_LENGTH}
+          </span>
+        </div>
         <button
           type="submit"
           className="btn-generate"
-          disabled={!prompt.trim() || isLoading}
+          disabled={!prompt.trim() || !valid || isLoading}
         >
           {isLoading ? (
             <span className="loading-spinner">생성 중...</span>
