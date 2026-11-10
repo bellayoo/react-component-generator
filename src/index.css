@@ -1,0 +1,57 @@
+/* 픽셀 한글 폰트 (갈무리): 쓰는 두 종류만 로드 */
+@font-face {
+  font-family: Galmuri14;
+  src: url('../node_modules/galmuri/dist/Galmuri14.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: GalmuriMono11;
+  src: url('../node_modules/galmuri/dist/GalmuriMono11.woff2') format('woff2');
+  font-display: swap;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  font-synthesis: none;
+}
+
+body {
+  font-family: Galmuri14, 'Malgun Gothic', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 22px;
+  color: #1d1b26;
+  min-height: 100vh;
+  background-color: #2c7a7b;
+  /* 2px 디더링: 옛 데스크톱 배경화면의 점 패턴 */
+  background-image: conic-gradient(
+    #2f8183 25%,
+    #2c7a7b 0 50%,
+    #2f8183 0 75%,
+    #2c7a7b 0
+  );
+  background-size: 4px 4px;
+  image-rendering: pixelated;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #1f2a7c;
+  color: #ffffff;
+}

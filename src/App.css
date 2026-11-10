@@ -1,0 +1,741 @@
+/* ------------------------------------------------------------
+   90년대 데스크톱 소프트웨어 테마
+   창(.window) = 구조 단위. 타이틀바·베벨·상태바는 모두 창의 문법.
+------------------------------------------------------------ */
+:root {
+  --desktop: #2c7a7b;
+  --chrome: #d9d4c7;
+  --chrome-hi: #fffdf5;
+  --chrome-lo: #9a9588;
+  --chrome-dark: #5f5b50;
+  --paper: #fffef8;
+  --ink: #1d1b26;
+  --ink-soft: #4a473e;
+  --title-from: #1f2a7c;
+  --title-to: #5b73d6;
+  --accent: #ffd23f;
+  --accent-press: #f0be1f;
+  --danger: #c62f2f;
+  --ok: #1d7a3a;
+  --term-bg: #14121f;
+  --term-fg: #b9f6a4;
+
+  --font-ui: Galmuri14, 'Malgun Gothic', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: GalmuriMono11, 'D2Coding', Consolas, monospace;
+
+  --raised:
+    inset -1px -1px var(--chrome-dark), inset 1px 1px var(--chrome-hi),
+    inset -2px -2px var(--chrome-lo), inset 2px 2px #ebe6d8;
+  --sunken:
+    inset 1px 1px var(--chrome-dark), inset -1px -1px var(--chrome-hi),
+    inset 2px 2px var(--chrome-lo), inset -2px -2px #ebe6d8;
+}
+
+/* ---------- 작업표시줄 ---------- */
+.taskbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 6px 12px;
+  background: var(--chrome);
+  border-bottom: 2px solid var(--ink);
+  box-shadow: inset 0 2px var(--chrome-hi), inset 0 -2px var(--chrome-lo);
+}
+
+.taskbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  background: var(--title-from);
+  border: 1px solid var(--ink);
+  box-shadow: inset 1px 1px var(--title-to), inset -1px -1px #121a55;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.tray {
+  display: flex;
+  gap: 6px;
+}
+
+.tray-cell {
+  padding: 2px 12px;
+  background: var(--paper);
+  box-shadow: var(--sunken);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.tray-cell strong {
+  margin-left: 4px;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+/* ---------- 배치 ---------- */
+.desktop {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 28px 24px 56px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+
+/* ---------- 창 ---------- */
+.window {
+  background: var(--chrome);
+  border: 1px solid var(--ink);
+  box-shadow: var(--raised), 5px 5px 0 rgba(20, 18, 31, 0.4);
+  padding: 3px;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  padding: 2px 4px 2px 10px;
+  background: linear-gradient(90deg, var(--title-from), var(--title-to));
+  color: #ffffff;
+}
+
+.titlebar--error {
+  background: linear-gradient(90deg, #7a1616, var(--danger));
+}
+
+.titlebar-title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-body {
+  padding: 24px;
+}
+
+/* ---------- 버튼 공통 ---------- */
+.btn-toggle-key,
+.btn-clear,
+.btn-refresh,
+.btn-regenerate,
+.btn-copy,
+.btn-generate,
+.example-chip,
+.titlebar-close,
+.tab {
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--chrome);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--raised);
+}
+
+.btn-toggle-key:active,
+.btn-clear:active,
+.btn-refresh:active,
+.btn-regenerate:active:not(:disabled),
+.btn-copy:active,
+.btn-generate:active:not(:disabled),
+.example-chip:active,
+.titlebar-close:active {
+  box-shadow: var(--sunken);
+  transform: translate(1px, 1px);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px dotted var(--ink);
+  outline-offset: 2px;
+}
+
+.titlebar .titlebar-close:focus-visible {
+  outline-color: #ffffff;
+}
+
+.btn-toggle-key,
+.btn-clear,
+.btn-refresh,
+.btn-regenerate,
+.btn-copy {
+  min-height: 34px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.btn-clear:hover {
+  color: var(--danger);
+}
+
+.btn-refresh {
+  width: 34px;
+  padding: 0;
+}
+
+.btn-regenerate:disabled,
+.btn-generate:disabled {
+  color: var(--chrome-lo);
+  text-shadow: 1px 1px var(--chrome-hi);
+  cursor: not-allowed;
+}
+
+.titlebar-close {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.titlebar-close:hover {
+  color: var(--danger);
+}
+
+/* ---------- 프롬프트 (히어로) ---------- */
+.composer-panel .window-body {
+  padding: 32px;
+}
+
+.prompt-heading {
+  margin-bottom: 24px;
+}
+
+.prompt-heading h1 {
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 36px;
+  color: var(--ink);
+}
+
+.prompt-heading p {
+  max-width: 44ch;
+  margin-top: 6px;
+  color: var(--ink-soft);
+}
+
+.prompt-form {
+  display: grid;
+  gap: 12px;
+}
+
+.prompt-textarea,
+.provider-select select,
+.api-key-field input {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--sunken);
+  color: var(--ink);
+}
+
+.prompt-textarea {
+  min-height: 144px;
+  padding: 14px 16px;
+  resize: vertical;
+  line-height: 24px;
+}
+
+.prompt-textarea::placeholder,
+.api-key-field input::placeholder {
+  color: #8b867a;
+}
+
+.btn-generate {
+  justify-self: end;
+  min-width: 180px;
+  height: 48px;
+  padding: 0 24px;
+  background: var(--accent);
+  white-space: nowrap;
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: #ffdc66;
+}
+
+.btn-generate:active:not(:disabled) {
+  background: var(--accent-press);
+}
+
+.btn-generate:disabled {
+  background: var(--chrome);
+}
+
+.prompt-examples {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 2px groove var(--chrome-lo);
+}
+
+.examples-label {
+  grid-column: 1 / -1;
+  color: var(--ink-soft);
+}
+
+.example-chip {
+  min-height: 72px;
+  padding: 10px 12px;
+  line-height: 20px;
+  text-align: left;
+}
+
+.example-chip:hover {
+  background: #e8e3d4;
+}
+
+/* ---------- 실행 설정 ---------- */
+.settings-panel .titlebar-title {
+  font-size: 14px;
+}
+
+.provider-select label,
+.api-key-input label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.api-key-input {
+  margin-top: 20px;
+}
+
+.provider-select select,
+.api-key-field input {
+  height: 38px;
+  padding: 0 10px;
+}
+
+.provider-select select {
+  cursor: pointer;
+}
+
+.api-key-field {
+  display: flex;
+  gap: 8px;
+}
+
+.api-key-field input {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.key-status {
+  margin-top: 10px;
+  color: var(--ink-soft);
+}
+
+.key-status--ready {
+  color: var(--ok);
+}
+
+/* ---------- 오류 ---------- */
+.error-banner {
+  margin-bottom: 28px;
+}
+
+.error-banner .window-body {
+  padding: 16px 20px;
+}
+
+.error-banner p {
+  color: #7a1616;
+}
+
+/* ---------- 결과 ---------- */
+.results-section {
+  min-height: 320px;
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.results-header h2,
+.empty-state h2 {
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 36px;
+}
+
+.results-header h2 {
+  color: #ffffff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.empty-state .window-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 40px;
+  align-items: center;
+  padding: 32px;
+}
+
+.empty-state h2,
+.empty-hint {
+  grid-column: 2;
+}
+
+.empty-screen {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  background: var(--term-bg);
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+  color: var(--term-fg);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.cursor {
+  display: inline-block;
+  width: 9px;
+  height: 17px;
+  margin-left: 6px;
+  vertical-align: text-bottom;
+  background: var(--term-fg);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+.empty-hint {
+  max-width: 48ch;
+  margin-top: 8px;
+  color: var(--ink-soft);
+}
+
+.empty-hint strong {
+  padding: 0 4px;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.loading-card {
+  margin-bottom: 24px;
+}
+
+.loading-card .window-body {
+  padding: 20px 24px 24px;
+}
+
+.loading-card p {
+  margin-bottom: 12px;
+}
+
+/* 청크형 진행 막대: 이 페이지의 유일한 상시 모션 */
+.progress {
+  height: 26px;
+  padding: 3px;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+}
+
+.progress-chunks {
+  width: 30%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--title-from) 0 12px,
+    transparent 12px 16px
+  );
+  animation: marquee 1.6s steps(14) infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------- 컴포넌트 창 ---------- */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px 4px;
+}
+
+.card-prompt {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 12px;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+/* 폴더 탭 */
+.card-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 4px 0;
+}
+
+.tab {
+  position: relative;
+  min-height: 32px;
+  padding: 0 20px;
+  border-bottom: 0;
+  box-shadow:
+    inset 1px 1px var(--chrome-hi),
+    inset -1px 0 var(--chrome-lo);
+  color: var(--ink-soft);
+}
+
+.tab--active {
+  z-index: 1;
+  margin-bottom: -2px;
+  padding-bottom: 2px;
+  background: var(--chrome);
+  color: var(--ink);
+}
+
+.tab:not(.tab--active) {
+  margin-top: 3px;
+  background: #cbc6b8;
+}
+
+.card-content {
+  margin: 0 4px 4px;
+  background: var(--chrome);
+  border: 1px solid var(--ink);
+  box-shadow: var(--raised);
+  padding: 8px;
+}
+
+.preview-panel,
+.code-panel {
+  display: block;
+}
+
+.preview-render {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 36px;
+  /* 생성된 컴포넌트는 테마와 무관하게 일반 웹 환경으로 렌더링한다 */
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(#e7e5de 1px, transparent 1px),
+    linear-gradient(90deg, #e7e5de 1px, transparent 1px);
+  background-size: 24px 24px;
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+  color: #0f172a;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.preview-error {
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.panel-header h3 {
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.code-block {
+  min-height: 280px;
+  max-height: 560px;
+  margin: 0;
+  padding: 18px 20px;
+  overflow: auto;
+  background: var(--term-bg);
+  border: 1px solid var(--ink);
+  box-shadow: var(--sunken);
+  color: var(--term-fg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.statusbar {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px 2px;
+}
+
+.statusbar span {
+  padding: 0 10px;
+  box-shadow: var(--sunken);
+  color: var(--ink-soft);
+}
+
+.statusbar span:first-child {
+  min-width: 80px;
+}
+
+.statusbar span:last-child {
+  margin-left: auto;
+}
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .desktop {
+    padding: 18px 12px 40px;
+  }
+
+  .tray-cell:first-child {
+    display: none;
+  }
+
+  .composer-panel .window-body,
+  .empty-state .window-body {
+    padding: 20px 16px;
+  }
+
+  .empty-state .window-body {
+    display: block;
+  }
+
+  .empty-screen {
+    margin-bottom: 20px;
+    min-height: 0;
+  }
+
+  .prompt-heading h1,
+  .results-header h2,
+  .empty-state h2 {
+    font-size: 21px;
+    line-height: 30px;
+  }
+
+  .btn-generate {
+    justify-self: stretch;
+  }
+
+  .prompt-examples {
+    grid-template-columns: 1fr;
+  }
+
+  .example-chip {
+    min-height: 0;
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+  }
+
+  .card-prompt {
+    flex-basis: 100%;
+  }
+
+  .preview-render {
+    min-height: 240px;
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .progress-chunks {
+    animation: none;
+  }
+
+  .btn-toggle-key:active,
+  .btn-clear:active,
+  .btn-refresh:active,
+  .btn-regenerate:active,
+  .btn-copy:active,
+  .btn-generate:active,
+  .example-chip:active,
+  .titlebar-close:active {
+    transform: none;
+  }
+}
