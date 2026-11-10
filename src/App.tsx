@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PromptInput } from './components/PromptInput';
 import { ComponentCard } from './components/ComponentCard';
+import { StreamingCard } from './components/StreamingCard';
 import { useComponentGenerator } from './hooks/useComponentGenerator';
 import { useLocalStorageState } from './hooks/useLocalStorageState';
 import { addToHistory } from './utils/storage';
@@ -27,7 +28,8 @@ function App() {
     anthropic: false,
     google: false,
   });
-  const { components, isLoading, error, generate, removeComponent, clearAll } =
+  const [pendingPrompt, setPendingPrompt] = useState('');
+  const { components, isLoading, streamingCode, error, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -44,6 +46,7 @@ function App() {
       alert(`${PROVIDER_CONFIG[provider].label} API 키를 입력하거나 .env에 설정해주세요.`);
       return;
     }
+    setPendingPrompt(prompt);
     setHistory((prev) => addToHistory(prev, prompt));
     generate(prompt, apiKey || undefined, provider);
   };
@@ -148,10 +151,10 @@ function App() {
       )}
 
       <section className="results-section">
-        {components.length > 0 && (
+        {(components.length > 0 || isLoading) && (
           <div className="results-header">
             <h2>생성된 컴포넌트</h2>
-            <button className="btn-clear" onClick={clearAll}>
+            <button className="btn-clear" onClick={clearAll} disabled={isLoading}>
               전체 삭제
             </button>
           </div>
@@ -178,21 +181,8 @@ function App() {
           </div>
         )}
 
-        {isLoading && (
-          <div className="window loading-card" role="status">
-            <div className="titlebar">
-              <span className="titlebar-title">생성 중</span>
-            </div>
-            <div className="window-body">
-              <p>컴포넌트를 생성하고 있습니다...</p>
-              <div className="progress" aria-hidden="true">
-                <div className="progress-chunks" />
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="results-grid">
+          {isLoading && <StreamingCard prompt={pendingPrompt} code={streamingCode} />}
           {components.map((component) => (
             <ComponentCard
               key={component.id}

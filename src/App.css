@@ -482,6 +482,15 @@ textarea:focus-visible {
   margin-bottom: 12px;
 }
 
+.loading-card-body {
+  min-height: 280px;
+  padding: 20px 24px 24px;
+}
+
+.loading-card-body p {
+  margin-bottom: 12px;
+}
+
 /* 청크형 진행 막대: 이 페이지의 유일한 상시 모션 */
 .progress {
   height: 26px;
